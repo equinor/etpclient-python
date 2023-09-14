@@ -42,7 +42,7 @@ def basic_auth_header(username, password):
 
 
 async def wait_for_response(
-    conn: ETPConnection, websocket_manager, msg_id: int, timeout: int = 5
+    conn: ETPConnection, websocket_manager, msg_id: int, timeout: int = 11
 ):
     delta_t = 0.01
     begining = datetime.now()
@@ -50,6 +50,9 @@ async def wait_for_response(
         # if (websocket_manager.recieved_msg_dict):
         #     print("##----##")
         #     pretty_p.pprint(websocket_manager.recieved_msg_dict)
+
+        if msg_id in etpclient.etp.serverprotocols.request_data_map:
+            return etpclient.etp.serverprotocols.request_data_map[msg_id]
 
         if msg_id in websocket_manager.recieved_msg_dict and (
             isinstance(websocket_manager.recieved_msg_dict[msg_id], Message)
@@ -62,6 +65,7 @@ async def wait_for_response(
         ):
             return websocket_manager.recieved_msg_dict[msg_id]
         await asyncio.sleep(delta_t)
+    print("returning None.. timeout", msg_id, timeout)
     return None
 
 
@@ -77,7 +81,7 @@ class WebSocketManager:
         # print("BASIC : ", basic_auth_header(username, password))
         # "ws://admin:openSesame@localhost:16500/etp/"
         if token:
-            print("auth bearer : \n" + "authorization: Bearer " + token)
+            print("auth bearer : \n" + "authorization: Bearer " + token[0:10] + "..."+token[-10:])
             self.ws = websocket.WebSocketApp(
                 uri,
                 subprotocols=[ETPConnection.SUB_PROTOCOL],
@@ -112,8 +116,8 @@ class WebSocketManager:
             client_info=ClientInfo(
                 ip=uri,
                 endpoint_capabilities={
-                    "MaxWebSocketFramePayloadSize": 40000,
-                    "MaxWebSocketMessagePayloadSize": 40000,
+                    "MaxWebSocketFramePayloadSize": 16000000,
+                    "MaxWebSocketMessagePayloadSize": 16000000,
                 },
             ),
         )
@@ -161,7 +165,7 @@ class WebSocketManager:
                 if msg:
                     async for b_msg in conn.handle_bytes_generator(msg):
                         # print(b_msg)
-                        # print("##> bmsg " )
+                        print(b_msg.headers.correlation_id, "##> bmsg " )
                         if (
                             b_msg.headers.correlation_id
                             not in websocket_manager.recieved_msg_dict[
@@ -214,7 +218,7 @@ class WebSocketManager:
             print(e)
 
     async def send_and_wait(self, req, timeout: int = 5):
-        # print("SENDING " + str(req))
+        print("SENDING " + str(req))
         # print("SENDING NW")
         # await self.print_message(req)
 
@@ -227,13 +231,13 @@ class WebSocketManager:
         ):
             self.ws.send(msg_to_send, websocket.ABNF.OPCODE_BINARY)
             # print("Msg sent... ", msg_to_send)
-        # return wait_for_response(conn=self.etp_connection, msg_id = msg_id, timeout=timeout)
-        result = await wait_for_response(
-            conn=self.etp_connection,
-            websocket_manager=self,
-            msg_id=msg_id,
-            timeout=timeout,
-        )
+            # return wait_for_response(conn=self.etp_connection, msg_id = msg_id, timeout=timeout)
+            result = await wait_for_response(
+                conn=self.etp_connection,
+                websocket_manager=self,
+                msg_id=msg_id,
+                timeout=timeout,
+            )
         # print("Answer : \n", result)
         # print("Answer recieved")
         return result

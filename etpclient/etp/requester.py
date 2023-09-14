@@ -143,6 +143,18 @@ local_protocols = [
         role="store",
         protocolCapabilities={},
     ),
+    SupportedProtocol(
+        protocol=CommunicationProtocol.DATA_ARRAY.value,
+        protocolVersion=etp_version,
+        role="store",
+        protocolCapabilities={},
+    ),
+    SupportedProtocol(
+        protocol=CommunicationProtocol.GROWING_OBJECT.value,
+        protocolVersion=etp_version,
+        role="store",
+        protocolCapabilities={},
+    ),
 ]
 
 supported_objects = [
@@ -283,8 +295,8 @@ def put_dataspace(dataspace_names: list):
             else ds_name,
             store_last_write=0,
             store_created=0,
+            path=ds_name
         )
-
     return PutDataspaces(dataspaces=ds_map)
 
 
@@ -496,7 +508,7 @@ async def put_data_array_sender(
                             h5_file_path,
                             dataspace_name,
                         ):
-                            print(type(pda), pda)
+                            # print("put data array", type(pda))
                             try:
                                 yield await websocket.send_no_wait(pda)
                             except Exception as e:

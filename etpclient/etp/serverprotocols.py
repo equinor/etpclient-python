@@ -148,6 +148,8 @@ from etptypes.energistics.etp.v12.protocol.supported_types.get_supported_types i
     GetSupportedTypes,
 )
 
+# import etpclient.etp.global_data
+request_data_map = {}
 
 # from geoetp.etp.etp_data_bridge import ETPDataBridge
 # from geoetp.etp.hsds_bridge import HSDSBridge
@@ -256,8 +258,9 @@ class myDiscoveryProtocol(DiscoveryHandler):
             len(msg.resources),
             "]",
         )
-        for res in msg.resources:
-            print_resource(res)
+        # for res in msg.resources:
+        #     print_resource(res)
+        request_data_map[msg_header.correlation_id] = msg.resources
         yield
 
     async def on_protocol_exception(
@@ -329,8 +332,7 @@ class myDataspaceHandler(DataspaceHandler):
         msg_header: MessageHeader,
         client_info: Union[None, ClientInfo] = None,
     ) -> AsyncGenerator[bytes, None]:
-        for dataspace in msg.dataspaces:
-            print_dataspace(dataspace)
+        request_data_map[msg_header.correlation_id] = msg.dataspaces
         yield
         # raise NotSupportedError()
 
@@ -402,21 +404,21 @@ class myStoreProtocol(StoreHandler):
         msg_header: MessageHeader,
         client_info: Union[None, ClientInfo] = None,
     ) -> AsyncGenerator[bytes, None]:
-        print("# on_get_data_objects_response")
+        # print("# on_get_data_objects_response")
         # pretty_p.pprint(msg)
-        for do in msg.data_objects.values():
-            form = do.format_.lower()
-            try:
-                if form == "xml":
-                    print(do.data.decode("utf-8"))
-                elif form == "json":
-                    json.dumps(
-                        json.loads(do.data.data.decode("utf-8")), indent=4
-                    )
-            except Exception as e:
-                print("\n\n=============", e, "\n")
-                pretty_p.pprint(do)
-
+        # for do in msg.data_objects.values():
+        #     form = do.format_.lower()
+        #     try:
+        #         if form == "xml":
+        #             print(do.data.decode("utf-8"))
+        #         elif form == "json":
+        #             json.dumps(
+        #                 json.loads(do.data.data.decode("utf-8")), indent=4
+        #             )
+        #     except Exception as e:
+        #         print("\n\n=============", e, "\n")
+        #         pretty_p.pprint(do)
+        request_data_map[msg_header.correlation_id] = msg.data_objects
         yield
 
     async def on_put_data_objects_response(
@@ -632,7 +634,7 @@ def computeCapability(supportedProtocolList_fun) -> ServerCapabilities:
         # supported_compression=["gzip"],
         supported_formats=["xml"],
         endpoint_capabilities={
-            "MaxWebSocketMessagePayloadSize": DataValue(item=4000)
+            "MaxWebSocketMessagePayloadSize": DataValue(item=16000000)
         },
         supported_encodings=["binary"],
         contact_information=Contact(
