@@ -510,7 +510,7 @@ async def put_data_array_sender(
                         ):
                             # print("put data array", type(pda))
                             try:
-                                yield await websocket.send_no_wait(pda)
+                                yield await websocket.send_and_wait(pda)
                             except Exception as e:
                                 print("ERROR : ", e)
                 else:

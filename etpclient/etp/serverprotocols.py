@@ -8,6 +8,7 @@ import uuid as pyUUID
 import pprint
 import lxml.etree as etree
 import json
+import numpy as np
 
 from etpproto.messages import Message
 from etptypes.energistics.etp.v12.datatypes.message_header import MessageHeader
@@ -469,7 +470,7 @@ class myDataArrayHandler(DataArrayHandler):
         msg_header: MessageHeader,
         client_info: Union[None, ClientInfo] = None,
     ) -> AsyncGenerator[Optional[Message], None]:
-        print(client_info.ip, msg)
+        request_data_map[msg_header.correlation_id] = msg.array_metadata    
         yield
 
     async def on_get_data_arrays(
@@ -500,7 +501,15 @@ class myDataArrayHandler(DataArrayHandler):
         msg_header: MessageHeader,
         client_info: Union[None, ClientInfo] = None,
     ) -> AsyncGenerator[Optional[Message], None]:
-        print(client_info.ip, msg)
+        # print(client_info.ip, msg)
+        if len(list(msg.data_arrays.keys())) >0:
+            dd : DataArray = list(msg.data_arrays.values())[0]
+            aa = np.array(dd.data.item.values)
+            aa2 = np.reshape(aa, dd.dimensions)
+            request_data_map[msg_header.correlation_id] = aa2
+        else:
+            print("PING ERROR on_get_data_arrays_response")
+            request_data_map[msg_header.correlation_id] = None
         yield
 
     async def on_get_data_subarrays_response(
